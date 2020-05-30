@@ -2,9 +2,13 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <util/delay.h>
+#include <string.h>
 
 //Velicina prijemnog bafera (mora biti 2^n)
 #define USART_RX_BUFFER_SIZE 64
+#define BR_KORISNIKA 10
+
+
 
 char Rx_Buffer[USART_RX_BUFFER_SIZE];			//prijemni FIFO bafer
 volatile unsigned char Rx_Buffer_Size = 0;	//broj karaktera u prijemnom baferu
@@ -94,13 +98,85 @@ unsigned char usartGetString(char *s)
 	return len;						//vraca broj ocitanih karaktera
 }
 
+
+char korisnici[BR_KORISNIKA][32] =
+
+{
+
+    "Sundjer Bob Kockalone",
+
+    "Dijego Armando Maradona",
+
+    "Bond. Dzejms bond.",
+
+    "Zoran Kostic Cane",
+
+    "Kim Dzong Un",
+  	
+  	"Mirko Janjic",
+  
+  	"Zoran Radmilovic",
+  
+  	"Dragan Djordjevic",
+  
+  	"Boban Jankovic",
+  
+  	"Milan Ilic"
+
+};
+
+char PIN[BR_KORISNIKA][5] = {"5346", "2133", "7445", "8756", "7435", "3354", "8732", "5196", "4521", "8945"};
+
 int main()
 {
+  	char unos[32];
+  	char sifra[5];
+  	unsigned char pronadjen = 13; //bilo koji broj van opsega indeksa u korisnici[][]
+  
 	usartInit(9600);
-  	usartPutString("Ovo je proba\r\n");
+  	usartPutString("Dobrodosli na bankomat!\r\n");
 	while(1)
 	{
-	}
-
+      usartPutString("Unesite vase podatke za pristup: \r\n");
+      while(!usartAvailable());
+      _delay_ms(50);
+      usartGetString(unos);
+      
+      for(unsigned char i = 0; i < 10;i++)
+      {
+      	if(!strcmp(unos, korisnici[i]))
+        {
+          pronadjen = i;
+          break;
+        }
+	  }
+      
+      if(pronadjen!=13)
+      {
+        usartPutString("Dobrodosli ");
+        usartPutString(korisnici[pronadjen]);
+        usartPutString("\nUnesite vas pin: \n");
+        for(unsigned char k = 0;k<4;k++)
+        {
+          	while(!usartAvailable());
+        	sifra[k]=usartGetChar();
+          	usartPutString("*");
+          	_delay_ms(50);
+        }
+        if(!strcmp(sifra,PIN[pronadjen]))
+        {
+          usartPutString("\nUspesno logovanje ");
+          usartPutString(korisnici[pronadjen]);
+          usartPutString(".\n");
+        }
+        else
+           usartPutString("\nPIN nije ispravan!\n");
+        pronadjen = 13;
+        
+      }
+      else
+        usartPutString("Ne nalazite se u bazi podataka, pokusajte ponovo!\r\n");
+      _delay_ms(2000);
+    }
 	return 0;
 }
